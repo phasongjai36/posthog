@@ -79,6 +79,15 @@ const stampEmbeddedPageFrame: BeforeSendFn = (event) =>
 
 const dropExceptions: BeforeSendFn = (event) => (event?.event === '$exception' ? null : event)
 
+export const posthogAppLogger = {
+    info(message: string, attributes: Record<string, string | number | boolean>): void {
+        posthog.logger.info(message, attributes)
+    },
+    warn(message: string, attributes: Record<string, string | number | boolean>): void {
+        posthog.logger.warn(message, attributes)
+    },
+}
+
 /**
  * Local development without self-capture sends its events to PostHog Cloud. Its crashes come from
  * dev-only state, for example a stale Vite prebundle, and file issues that no user can hit.
@@ -160,10 +169,19 @@ export function loadPostHogJS(): void {
             capture_webmcp: true,
             opt_out_capturing_by_default: window.IMPERSONATED_SESSION,
             __preview_deferred_init_extensions: true,
+            capture_exceptions: {
+                capture_unhandled_errors: true,
+                capture_unhandled_rejections: true,
+                capture_console_errors: false,
+            },
             error_tracking: {
                 __capturePostHogExceptions: true,
             },
             metrics: { network: { name: networkMetricName }, flags: true, serviceName: 'posthog-app' },
+            logs: {
+                serviceName: 'posthog-frontend',
+                environment: window.POSTHOG_APP_CONTEXT?.run_mode ?? 'unknown',
+            },
             before_send: [
                 dropScopeNotFoundExceptions,
                 dropHandledAuthGateExceptions,

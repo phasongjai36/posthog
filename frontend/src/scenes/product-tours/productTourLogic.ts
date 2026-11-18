@@ -5,6 +5,7 @@ import type { DeepPartial, DeepPartialMap, FieldName, ValidationErrorType } from
 import { loaders } from 'kea-loaders'
 import { actionToUrl, router, urlToAction } from 'kea-router'
 import { subscriptions } from 'kea-subscriptions'
+import posthog from 'posthog-js'
 
 import { lemonToast } from '@posthog/lemon-ui'
 
@@ -622,6 +623,13 @@ export const productTourLogic = kea<productTourLogicType>([
                     return
                 }
                 await api.productTours.publishDraft(values.productTour.id, buildDraftPayload(formValues))
+                posthog.capture('product_tour_saved', {
+                    tour_id: values.productTour.id,
+                    tour_type: values.entityKeyword,
+                    step_count: formValues.content.steps?.length ?? 0,
+                    auto_launch: formValues.auto_launch,
+                    has_custom_targeting: values.hasCustomTargeting,
+                })
                 lemonToast.success('Product tour saved')
                 actions.editingProductTour(false)
                 actions.loadProductTour()
@@ -773,6 +781,11 @@ export const productTourLogic = kea<productTourLogicType>([
                 await api.productTours.update(values.productTour.id, {
                     start_date: new Date().toISOString(),
                 })
+                posthog.capture('product_tour_launched', {
+                    tour_id: values.productTour.id,
+                    tour_type: values.entityKeyword,
+                    step_count: values.productTour.content.steps?.length ?? 0,
+                })
                 lemonToast.success('Product tour launched')
                 actions.loadProductTour()
                 actions.loadProductTours()
@@ -783,6 +796,10 @@ export const productTourLogic = kea<productTourLogicType>([
                 await api.productTours.update(values.productTour.id, {
                     end_date: new Date().toISOString(),
                 })
+                posthog.capture('product_tour_stopped', {
+                    tour_id: values.productTour.id,
+                    tour_type: values.entityKeyword,
+                })
                 lemonToast.success('Product tour stopped')
                 actions.loadProductTour()
                 actions.loadProductTours()
@@ -792,6 +809,10 @@ export const productTourLogic = kea<productTourLogicType>([
             if (values.productTour) {
                 await api.productTours.update(values.productTour.id, {
                     end_date: null,
+                })
+                posthog.capture('product_tour_resumed', {
+                    tour_id: values.productTour.id,
+                    tour_type: values.entityKeyword,
                 })
                 lemonToast.success('Product tour resumed')
                 actions.loadProductTour()

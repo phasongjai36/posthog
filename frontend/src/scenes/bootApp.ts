@@ -5,7 +5,7 @@ import { registerNotebookLinkDrag } from 'scenes/notebooks/AddToNotebook/registe
 import { prefetchScene } from 'scenes/prefetchScene'
 
 import { initKea } from '../initKea'
-import { loadPostHogJS } from '../loadPostHogJS'
+import { loadPostHogJS, posthogAppLogger } from '../loadPostHogJS'
 
 let appBooted = false
 
@@ -39,6 +39,7 @@ export function bootApp(): void {
     registerToastGetHelp()
     prefetchScene()
     loadFullStageAppContext()
+    posthogAppLogger.info('frontend app boot completed', { boot_phase: 'synchronous' })
 
     const idle =
         typeof window.requestIdleCallback === 'function'
@@ -50,6 +51,9 @@ export function bootApp(): void {
             .then(({ preWarmDecompression }) => preWarmDecompression())
             .catch((error) => {
                 console.warn('[App] Failed to load DecompressionWorkerManager for pre-warm:', error)
+                posthogAppLogger.warn('frontend optional initialization failed', {
+                    initialization_step: 'snapshot_decompression_prewarm',
+                })
             })
 
         // On Chrome + Windows, the country flag emojis don't render correctly. This polyfill fixes that.
@@ -59,6 +63,9 @@ export function bootApp(): void {
             .then(({ polyfillCountryFlags }) => polyfillCountryFlags())
             .catch((error) => {
                 console.warn('[App] Country flag emoji polyfill failed:', error)
+                posthogAppLogger.warn('frontend optional initialization failed', {
+                    initialization_step: 'country_flag_emoji_polyfill',
+                })
             })
     })
 }
