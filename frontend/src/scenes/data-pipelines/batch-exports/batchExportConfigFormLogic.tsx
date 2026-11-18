@@ -3,6 +3,7 @@ import { forms } from 'kea-forms'
 import type { DeepPartial, DeepPartialMap, FieldName, ValidationErrorType } from 'kea-forms'
 import { loaders } from 'kea-loaders'
 import { beforeUnload, router } from 'kea-router'
+import posthog from 'posthog-js'
 
 import { LemonDialog, lemonToast } from '@posthog/lemon-ui'
 
@@ -1161,6 +1162,11 @@ export const batchExportConfigFormLogic = kea<batchExportConfigFormLogicType>([
             }
             try {
                 await api.batchExports.delete(batchExportId)
+                posthog.capture('batch_export_deleted', {
+                    destination_type: values.batchExportConfig?.destination.type,
+                    model: values.batchExportConfig?.model,
+                    interval: values.batchExportConfig?.interval,
+                })
                 lemonToast.success('Batch export deleted successfully')
                 router.actions.replace(urls.destinations('batch'))
             } catch (error: any) {
@@ -1254,6 +1260,12 @@ export const batchExportConfigFormLogic = kea<batchExportConfigFormLogicType>([
                 try {
                     if (props.id) {
                         const res = await api.batchExports.update(props.id, data)
+                        posthog.capture('batch_export_updated', {
+                            destination_type: res.destination.type,
+                            model: res.model,
+                            interval: res.interval,
+                            paused: res.paused,
+                        })
                         lemonToast.success('Batch export configuration updated successfully')
                         void addProductIntent({
                             product_type: ProductKey.PIPELINE_BATCH_EXPORTS,
@@ -1272,6 +1284,12 @@ export const batchExportConfigFormLogic = kea<batchExportConfigFormLogicType>([
                     })
 
                     router.actions.replace(urls.batchExport(res.id))
+                    posthog.capture('batch_export_created', {
+                        destination_type: res.destination.type,
+                        model: res.model,
+                        interval: res.interval,
+                        paused: res.paused,
+                    })
                     lemonToast.success('Batch export created successfully')
                     actions.updateBatchExportConfigSuccess(res)
                 } catch (error: any) {
